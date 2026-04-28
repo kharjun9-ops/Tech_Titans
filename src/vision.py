@@ -48,6 +48,7 @@ class VisionDetector:
         self.fight_sec = 0.0
         self.fight_reported = False
         self.backpack_item_sec = 0.0
+        self.weapon_seen_sec = 0.0
         self.status_labels: List[str] = []
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -129,15 +130,35 @@ class VisionDetector:
                 if label in self.item_labels:
                     item_boxes.append(det)
 
-        motion_score = self._motion_score(frame)
+        motion_score = self._motion_score(frame, person_boxes)
         person_count = len(person_boxes)
 
-        if weapon_best_label:
-            self.status_labels.append(
-                f"Weapon: {weapon_best_label} {weapon_best_conf * 100:.2f}%"
-            )
+        weapon_valid = (
+            bool(weapon_best_label)
+            and weapon_best_conf >= float(getattr(self.config, "weapon_min_conf", 0.0))
+        )
+        if weapon_valid:
+            self.weapon_seen_sec += dt
+        else:
+            self.weapon_seen_sec = 0.0
 
-        if weapon_best_label and self._event_ready("weapon", now):
+        if weapon_best_label:
+            if weapon_valid and self.weapon_seen_sec >= float(
+                getattr(self.config, "weapon_min_sec", 0.0)
+            ):
+                self.status_labels.append(
+                    f"Weapon CONFIRMED: {weapon_best_label} {weapon_best_conf * 100:.2f}%"
+                )
+            else:
+                self.status_labels.append(
+                    f"Weapon? {weapon_best_label} {weapon_best_conf * 100:.2f}%"
+                )
+
+        if (
+            weapon_valid
+            and self.weapon_seen_sec >= float(getattr(self.config, "weapon_min_sec", 0.0))
+            and self._event_ready("weapon", now)
+        ):
             events.append(
                 self._make_event(
                     "visual", f"weapon: {weapon_best_label}", weapon_best_conf
@@ -171,14 +192,37 @@ class VisionDetector:
 
         return events, detections, motion_score, person_count
 
-    def _motion_score(self, frame: np.ndarray) -> float:
+    def _motion_score(
+        self, frame: np.ndarray, person_boxes: List[Tuple[int, int, int, int]] | None = None
+    ) -> float:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
         if self.prev_gray is None:
             self.prev_gray = gray
             return 0.0
         diff = cv2.absdiff(gray, self.prev_gray)
         self.prev_gray = gray
-        return float(diff.mean() / 255.0)
+
+        if not person_boxes:
+            return float(diff.mean() / 255.0)
+
+        total_sum = 0.0
+        total_area = 0
+        h, w = diff.shape[:2]
+        for (x1, y1, x2, y2) in person_boxes:
+            x1 = max(0, min(w - 1, int(x1)))
+            y1 = max(0, min(h - 1, int(y1)))
+            x2 = max(0, min(w, int(x2)))
+            y2 = max(0, min(h, int(y2)))
+            if x2 <= x1 or y2 <= y1:
+                continue
+            roi = diff[y1:y2, x1:x2]
+            total_sum += float(roi.sum())
+            total_area += int(roi.size)
+
+        if total_area <= 0:
+            return float(diff.mean() / 255.0)
+        return float((total_sum / total_area) / 255.0)
 
     def _update_tracks(
         self,

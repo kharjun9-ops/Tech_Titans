@@ -62,6 +62,8 @@ class Config:
     yolo_model: str
     yolo_conf: float
     yolo_imgsz: int
+    weapon_min_conf: float
+    weapon_min_sec: float
     restricted_zone: Tuple[float, float, float, float]
     shelf_zone: Tuple[float, float, float, float]
     loiter_sec: float
@@ -129,6 +131,8 @@ class Config:
             yolo_model=os.getenv("YOLO_MODEL", "yolov8n.pt"),
             yolo_conf=_env_float("YOLO_CONF", 0.35),
             yolo_imgsz=_env_int("YOLO_IMGSZ", 640),
+            weapon_min_conf=_env_float("WEAPON_MIN_CONF", 0.55),
+            weapon_min_sec=_env_float("WEAPON_MIN_SEC", 0.25),
             restricted_zone=_env_box("RESTRICTED_ZONE", (0.65, 0.15, 0.95, 0.85)),
             shelf_zone=_env_box("SHELF_ZONE", (0.05, 0.2, 0.35, 0.85)),
             loiter_sec=_env_float("LOITER_SEC", 6.0),
