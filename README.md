@@ -14,6 +14,28 @@ triggers an alert when BOTH visual AND audio anomalies happen within a short
 time window (e.g., 5-10 seconds). This drastically reduces false alarms.
 
 ================================================================================
+IOT / MULTI-SENSOR FUSION (ROADMAP)
+================================================================================
+
+To extend beyond audio+video, the same fusion engine can ingest low-cost IoT sensors
+to make alerts more reliable and deployment-ready:
+
+Sensors to add:
+- Door sensor (open/close)
+- PIR motion sensor (presence)
+- Ambient light sensor (lights on/off)
+- Vibration sensor (forced entry / impact)
+
+Example fusion rules:
+- Door opened + no person detected (camera) → anomaly
+- Door opened after-hours + aggressive audio → high priority
+- Lights turned off + motion detected → suspicious activity
+
+Implementation idea:
+- A small “sensor events” input (MQTT/HTTP/WebSocket/serial) that produces events
+	in the same format as audio/visual events, then reuses the existing fusion window.
+
+================================================================================
 HOW IT WORKS (3 STEPS)
 ================================================================================
 
@@ -116,3 +138,23 @@ When an alert triggers, the app can play a local alarm sound on this PC.
 
 - ENABLE_ALARM_SOUND=1  (turn on)
 - ALARM_STYLE=beep      (default) or siren
+
+================================================================================
+QUICKSTART (DEMO)
+================================================================================
+
+1) Install deps:
+	pip install -r requirements.txt
+
+2) (Optional) Create a .env from .env.example and set:
+	CAMERA_INDEX=0
+	SEND_WHATSAPP=0
+
+3) Run:
+	python src/app.py
+
+Hotkeys:
+- h : toggle HUD
+- b : toggle boxes
+- r : set restricted zone (then click 2 corners)
+- q : quit

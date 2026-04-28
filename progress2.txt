@@ -14,6 +14,17 @@ Progress Update (Hackathon Build)
 - Reduced camera lag by lowering capture buffering and running heavy detection every N frames (instead of every single frame).
 - Fixed recorded clip playback speed issues by estimating FPS from camera timestamps.
 
+4) Demo UI Polish
+- Added a clean HUD panel with FPS + status + key controls (h=HUD, b=boxes, r=zone, q=quit).
+- Added a clear "ALERT TRIGGERED" banner when an alert fires.
+- Added clearer camera error messages so the demo fails gracefully.
+
+5) Faster Startup (No surprise downloads)
+- Ensured YOLO model paths resolve to the local .pt files in the repo root to avoid downloading weights during the demo.
+
+6) Roadmap: IoT / Multi-Sensor Fusion
+- Added a short roadmap document for integrating door/motion/light sensors and example fusion rules: IOT_SENSORS_ROADMAP.md
+
 Status
 - Code + improvements are pushed to GitHub.
 - Clips folder was pruned to keep only the required demo clips.
