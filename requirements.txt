@@ -1,0 +1,8 @@
+opencv-python>=4.8.0.74
+ultralytics>=8.2.0
+numpy>=1.24.0
+sounddevice>=0.4.6
+tensorflow>=2.13.0
+tensorflow-hub>=0.15.0
+twilio>=8.10.0
+python-dotenv>=1.0.1
