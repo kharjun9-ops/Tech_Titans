@@ -1,1 +1,20 @@
 .env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated clips / alarms
+clips/*.mp4
+clips/*.wav
+
+# Local notes
+PROGRESS 1.txt
+
+# Large/binary assets (keep out of git by default)
+*.pt
+
+# Bundled tools
+ffmpeg-8.1/
+ngrok/

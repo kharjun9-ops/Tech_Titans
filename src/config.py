@@ -32,6 +32,13 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _env_str(name: str, default: str) -> str:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    return value
+
+
 def _env_box(name: str, default: Tuple[float, float, float, float]) -> Tuple[float, float, float, float]:
     value = os.getenv(name)
     if value is None or value == "":
@@ -90,6 +97,7 @@ class Config:
     require_fusion: bool
     enable_audio: bool
     enable_alarm_sound: bool
+    alarm_style: str
     alarm_beep_hz: int
     alarm_beep_ms: int
     alarm_beep_count: int
@@ -156,6 +164,7 @@ class Config:
             require_fusion=_env_bool("REQUIRE_FUSION", False),
             enable_audio=_env_bool("ENABLE_AUDIO", True),
             enable_alarm_sound=_env_bool("ENABLE_ALARM_SOUND", True),
+            alarm_style=_env_str("ALARM_STYLE", "beep").strip().lower(),
             alarm_beep_hz=_env_int("ALARM_BEEP_HZ", 1200),
             alarm_beep_ms=_env_int("ALARM_BEEP_MS", 200),
             alarm_beep_count=_env_int("ALARM_BEEP_COUNT", 3),

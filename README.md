@@ -107,3 +107,12 @@ In Progress:
 - Audio detection module
 - Fusion engine
 - WhatsApp integration
+
+================================================================================
+LOCAL ALERT SOUND
+================================================================================
+
+When an alert triggers, the app can play a local alarm sound on this PC.
+
+- ENABLE_ALARM_SOUND=1  (turn on)
+- ALARM_STYLE=beep      (default) or siren

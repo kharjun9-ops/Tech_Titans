@@ -1,9 +1,12 @@
+import math
 import os
 import shutil
 import subprocess
 import queue
 import threading
 import time
+import wave
+from array import array
 from collections import deque
 from typing import List, Optional, Tuple
 
@@ -151,14 +154,68 @@ def _draw_text(frame, lines: List[str]) -> None:
         y += 22
 
 
+def _ensure_siren_wav(path: str) -> None:
+    if os.path.exists(path):
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    sample_rate = 44100
+    duration_s = 1.2
+    fade_s = 0.02
+    freq_low = 700.0
+    freq_high = 1400.0
+    sweep_s = 0.25
+    amplitude = 0.45
+
+    total_samples = int(sample_rate * duration_s)
+    pcm = array("h")
+    phase = 0.0
+    two_pi = 2.0 * math.pi
+
+    for i in range(total_samples):
+        t = i / sample_rate
+
+        sweep_pos = (t % sweep_s) / sweep_s
+        tri = 2.0 * sweep_pos if sweep_pos < 0.5 else 2.0 * (1.0 - sweep_pos)
+        freq = freq_low + (freq_high - freq_low) * tri
+        phase += two_pi * freq / sample_rate
+
+        fade = 1.0
+        if t < fade_s:
+            fade = t / fade_s
+        elif duration_s - t < fade_s:
+            fade = (duration_s - t) / fade_s
+        fade = max(0.0, min(1.0, fade))
+
+        value = int(amplitude * fade * math.sin(phase) * 32767)
+        pcm.append(max(-32768, min(32767, value)))
+
+    with wave.open(path, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(pcm.tobytes())
+
+
 def _play_alarm(config: Config) -> None:
     if not config.enable_alarm_sound:
         return
+
+    style = (getattr(config, "alarm_style", "beep") or "beep").strip().lower()
     count = max(1, int(config.alarm_beep_count))
     hz = max(200, int(config.alarm_beep_hz))
     ms = max(50, int(config.alarm_beep_ms))
     try:
         import winsound
+
+        if style == "siren":
+            siren_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "clips", "alarm_siren.wav")
+            )
+            _ensure_siren_wav(siren_path)
+            winsound.PlaySound(None, winsound.SND_PURGE)
+            winsound.PlaySound(siren_path, winsound.SND_FILENAME)
+            return
 
         for _ in range(count):
             winsound.Beep(hz, ms)
