@@ -5,6 +5,25 @@ from typing import Tuple
 from dotenv import load_dotenv
 
 
+def _resolve_repo_model_path(value: str) -> str:
+    """Resolve model names like 'yolov8n.pt' to a local file in the repo root if present.
+
+    This avoids surprise downloads during the demo when the working directory isn't the
+    repo root or when Ultralytics treats the string as a remote asset name.
+    """
+    value = (value or "").strip()
+    if not value:
+        return value
+    if os.path.isabs(value):
+        return value
+
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    candidate = os.path.join(repo_root, value)
+    if os.path.exists(candidate):
+        return candidate
+    return value
+
+
 def _env_int(name: str, default: int) -> int:
     value = os.getenv(name)
     if value is None or value == "":
@@ -132,7 +151,7 @@ class Config:
             frame_height=_env_int("FRAME_HEIGHT", 540),
             fps=_env_int("FPS", 20),
             detect_every_n=_env_int("DETECT_EVERY_N", 1),
-            yolo_model=os.getenv("YOLO_MODEL", "yolov8n.pt"),
+            yolo_model=_resolve_repo_model_path(_env_str("YOLO_MODEL", "yolov8n.pt")),
             yolo_conf=_env_float("YOLO_CONF", 0.35),
             yolo_imgsz=_env_int("YOLO_IMGSZ", 640),
             weapon_min_conf=_env_float("WEAPON_MIN_CONF", 0.55),
@@ -162,7 +181,7 @@ class Config:
             face_min_size=_env_int("FACE_MIN_SIZE", 28),
             face_min_neighbors=_env_int("FACE_MIN_NEIGHBORS", 4),
             enable_pose=_env_bool("ENABLE_POSE", False),
-            pose_model=os.getenv("POSE_MODEL", "yolov8n-pose.pt"),
+            pose_model=_resolve_repo_model_path(_env_str("POSE_MODEL", "yolov8n-pose.pt")),
             pose_conf=_env_float("POSE_CONF", 0.25),
             pose_every_n=_env_int("POSE_EVERY_N", 3),
             enable_backpack=_env_bool("ENABLE_BACKPACK", False),

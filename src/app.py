@@ -138,20 +138,88 @@ def _draw_box(frame, box: Tuple[int, int, int, int], color: Tuple[int, int, int]
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
 
-def _draw_text(frame, lines: List[str]) -> None:
-    y = 22
+def _draw_hud(
+    frame,
+    lines: List[str],
+    origin: Tuple[int, int] = (10, 10),
+    font_scale: float = 0.55,
+    text_color: Tuple[int, int, int] = (255, 255, 255),
+    bg_color: Tuple[int, int, int] = (0, 0, 0),
+    alpha: float = 0.45,
+) -> None:
+    if not lines:
+        return
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    thickness = 2
+    pad_x = 10
+    pad_y = 8
+    line_gap = 6
+
+    sizes = [cv2.getTextSize(line, font, font_scale, thickness)[0] for line in lines]
+    max_w = max(w for (w, _) in sizes)
+    line_h = max(h for (_, h) in sizes)
+    box_w = max_w + pad_x * 2
+    box_h = pad_y * 2 + len(lines) * line_h + (len(lines) - 1) * line_gap
+
+    x0, y0 = origin
+    x1 = min(frame.shape[1] - 1, x0 + box_w)
+    y1 = min(frame.shape[0] - 1, y0 + box_h)
+
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (x0, y0), (x1, y1), bg_color, -1)
+    cv2.addWeighted(overlay, alpha, frame, 1.0 - alpha, 0, frame)
+
+    y = y0 + pad_y + line_h
     for line in lines:
         cv2.putText(
             frame,
             line,
-            (10, y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (0, 255, 255),
-            2,
+            (x0 + pad_x, y),
+            font,
+            font_scale,
+            text_color,
+            thickness,
             cv2.LINE_AA,
         )
-        y += 22
+        y += line_h + line_gap
+
+
+def _draw_banner(
+    frame,
+    text: str,
+    bg_color: Tuple[int, int, int] = (0, 0, 255),
+    text_color: Tuple[int, int, int] = (255, 255, 255),
+    alpha: float = 0.35,
+) -> None:
+    if not text:
+        return
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.9
+    thickness = 2
+    pad_x = 14
+    pad_y = 10
+
+    (tw, th), _ = cv2.getTextSize(text, font, font_scale, thickness)
+    x0 = max(0, (frame.shape[1] - (tw + pad_x * 2)) // 2)
+    y0 = 10
+    x1 = min(frame.shape[1] - 1, x0 + tw + pad_x * 2)
+    y1 = min(frame.shape[0] - 1, y0 + th + pad_y * 2)
+
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (x0, y0), (x1, y1), bg_color, -1)
+    cv2.addWeighted(overlay, alpha, frame, 1.0 - alpha, 0, frame)
+    cv2.putText(
+        frame,
+        text,
+        (x0 + pad_x, y0 + pad_y + th),
+        font,
+        font_scale,
+        text_color,
+        thickness,
+        cv2.LINE_AA,
+    )
 
 
 def _ensure_siren_wav(path: str) -> None:
@@ -266,6 +334,13 @@ def main() -> None:
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.frame_height)
+    if not cap.isOpened():
+        print(
+            f"ERROR: Could not open camera index {config.camera_index}. "
+            "Try changing CAMERA_INDEX in .env (e.g., 0 or 1)."
+        )
+        return
+
     camera_fps = cap.get(cv2.CAP_PROP_FPS)
     if not camera_fps or camera_fps < 1:
         camera_fps = float(config.fps)
@@ -304,12 +379,31 @@ def main() -> None:
     last_detections: List[dict] = []
     last_motion_score = 0.0
     last_person_count = 0
+    show_hud = True
+    show_boxes = True
+    read_failures = 0
+    fps_ema = 0.0
+    last_perf_t = time.perf_counter()
 
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
-                break
+                read_failures += 1
+                if read_failures == 1:
+                    print("WARNING: Camera frame read failed; retrying...")
+                if read_failures >= 30:
+                    print("ERROR: Camera read failed repeatedly; exiting.")
+                    break
+                time.sleep(0.02)
+                continue
+            read_failures = 0
+
+            now_perf = time.perf_counter()
+            dt = max(1e-6, now_perf - last_perf_t)
+            inst_fps = 1.0 / dt
+            fps_ema = inst_fps if fps_ema <= 0 else (0.9 * fps_ema + 0.1 * inst_fps)
+            last_perf_t = now_perf
 
             frame = cv2.resize(frame, (config.frame_width, config.frame_height))
 
@@ -369,43 +463,54 @@ def main() -> None:
                 last_audio_event = None
                 last_visual_event = None
 
-            for det in detections:
-                color = (0, 0, 255) if det.get("is_weapon") else (0, 255, 0)
-                _draw_box(display_frame, det["bbox"], color)
-                label = f"{det['label']} {det['conf']:.2f}"
-                cv2.putText(
-                    display_frame,
-                    label,
-                    (det["bbox"][0], det["bbox"][1] - 6),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    color,
-                    1,
-                    cv2.LINE_AA,
-                )
+            if show_boxes:
+                for det in detections:
+                    # Keep the live view clean: always show weapons; people boxes are optional.
+                    if not det.get("is_weapon") and det.get("label") not in {"person"}:
+                        continue
+                    color = (0, 0, 255) if det.get("is_weapon") else (0, 255, 0)
+                    _draw_box(display_frame, det["bbox"], color)
+                    label = f"{det['label']} {det['conf']:.2f}"
+                    cv2.putText(
+                        display_frame,
+                        label,
+                        (det["bbox"][0], max(12, det["bbox"][1] - 6)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        color,
+                        1,
+                        cv2.LINE_AA,
+                    )
 
             restricted_box = vision.rel_box_to_abs(config.restricted_zone, display_frame.shape)
             _draw_box(display_frame, restricted_box, (0, 0, 255))
 
-            overlay_lines = [
-                f"People: {person_count} | Motion: {motion_score:.2f}",
-            ]
-            if last_visual_event:
-                overlay_lines.append(
-                    f"V: {last_visual_event['label']} ({last_visual_event['score']:.2f})"
-                )
-            if last_audio_event:
-                overlay_lines.append(
-                    f"A: {last_audio_event['label']} ({last_audio_event['score']:.2f})"
-                )
-            if getattr(vision, "status_labels", None):
-                overlay_lines.extend(vision.status_labels)
-            if calibrator.active:
-                overlay_lines.append("Calibrate: click 2 corners")
-            else:
-                overlay_lines.append("Press r to set restricted zone")
-            overlay_lines.append("Press q to quit")
-            _draw_text(display_frame, overlay_lines)
+            if show_hud:
+                hud_lines = [
+                    f"FPS: {fps_ema:4.1f} | People: {person_count} | Motion: {motion_score:.2f}",
+                    f"Detect stride: every {max(1, int(config.detect_every_n))} frame(s)",
+                    f"Fusion required: {'ON' if config.require_fusion else 'OFF'} | Alarm: {'ON' if config.enable_alarm_sound else 'OFF'}",
+                ]
+                if last_visual_event:
+                    hud_lines.append(
+                        f"VISION: {last_visual_event['label']} ({last_visual_event['score']:.2f})"
+                    )
+                if last_audio_event:
+                    hud_lines.append(
+                        f"AUDIO: {last_audio_event['label']} ({last_audio_event['score']:.2f})"
+                    )
+                if getattr(vision, "status_labels", None):
+                    hud_lines.extend(vision.status_labels)
+
+                if calibrator.active:
+                    hud_lines.append("Calibrate: click 2 corners")
+                else:
+                    hud_lines.append("Hotkeys: r=set zone | b=boxes | h=HUD | q=quit")
+
+                _draw_hud(display_frame, hud_lines)
+
+            if (time.time() - last_alert_time) <= 2.0 and last_alert_time > 0:
+                _draw_banner(display_frame, "ALERT TRIGGERED")
 
             frame_ts_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
             if frame_ts_ms and frame_ts_ms > 0:
@@ -420,6 +525,10 @@ def main() -> None:
             if key == ord("r"):
                 calibrator.start()
                 print("Calibration: click two corners for the restricted zone.")
+            if key == ord("h"):
+                show_hud = not show_hud
+            if key == ord("b"):
+                show_boxes = not show_boxes
     finally:
         stop_event.set()
         cap.release()
