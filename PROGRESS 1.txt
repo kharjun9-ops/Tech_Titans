@@ -1,0 +1,44 @@
+========================================
+ERROR ALERT SOUND FOR SUSPICIOUS ACTIVITY
+========================================
+
+STATUS: IN PROGRESS
+
+========================================
+TASKS COMPLETED
+========================================
+[ ] Selected alert sound file (siren/buzzer/beep)
+[ ] Added sound file to repo
+[ ] Integrated sound with visual detection
+[ ] Integrated sound with audio detection
+[ ] Integrated sound with fusion trigger
+[ ] Tested sound playback on alert
+
+========================================
+CURRENT STEP
+========================================
+Step 1: Choosing the alert sound type
+
+Options under consideration:
+- Loud siren (for public spaces)
+- Silent app notification sound (for discreet alert)
+- Voice alert ("Suspicious activity detected")
+- Custom beep pattern
+
+========================================
+NEXT STEPS
+========================================
+1. Finalize sound file format (.wav or .mp3)
+2. Upload to repo
+3. Write code to play sound on fusion alert
+
+========================================
+NOTES
+========================================
+- Sound should only play when BOTH visual AND audio anomalies trigger
+- Avoid false sound alarms
+- Add volume control option
+
+========================================
+LAST UPDATED: [Add today's date]
+========================================

@@ -1,127 +1,109 @@
-# Multimodal AI for Real-Time Threat Detection (Visual + Audio Fusion)
+================================================================================
+PROJECT TITLE
+================================================================================
+Multimodal AI for Real-Time Threat Detection (Visual + Audio Fusion)
 
-Real-time surveillance system combining computer vision and audio analytics to detect threats (shoplifting, weapons, fights, glass breaks, gunshots, screams, etc.).  
-Reduces false alarms via multimodal fusion — triggers WhatsApp alert with video clip only when both visual AND audio anomalies occur within a short window.
+================================================================================
+PROJECT OVERVIEW
+================================================================================
+This is an intelligent surveillance system that combines computer vision (camera)
+and audio analytics (microphone) to detect suspicious activities in real-time.
 
----
+Unlike normal CCTV or sound alarms, this system uses MULTIMODAL FUSION - it only
+triggers an alert when BOTH visual AND audio anomalies happen within a short
+time window (e.g., 5-10 seconds). This drastically reduces false alarms.
 
-## Multimodal Surveillance Demo
+================================================================================
+HOW IT WORKS (3 STEPS)
+================================================================================
 
-This is a hackathon demo that combines live webcam + microphone detection.  
-It fires an alert only when a visual anomaly and an audio anomaly happen within a short window, reducing false alarms.
+STEP 1: INDEPENDENT DETECTION
+-----------------------------------------
+VISUAL DETECTION (Camera):
+- Shoplifting gestures (concealing items)
+- Loitering near restricted areas
+- Running inside stores / banks
+- Crowd stampede or fight detection
+- Masked person in sensitive zones
+- Weapon-like objects (gun, knife, etc.)
 
----
+AUDIO DETECTION (Microphone):
+- Screaming / distress sounds (especially at night)
+- Glass breaking (burglary detection)
+- Gunshot sounds
+- Aggressive shouting / altercation
+- Silence after alarm trigger (confirms event)
 
-## What it does (MVP)
+STEP 2: MULTIMODAL FUSION
+-----------------------------------------
+Both detection systems run simultaneously. An alert is triggered ONLY IF:
+- A visual anomaly is detected AND
+- An audio anomaly is detected within 5-10 seconds of each other
 
-### Visual Detection:
-- Weapon-like objects  
-- Running motion  
-- Crowd/fight detection  
-- Loitering in restricted zone  
-- Masked person in restricted zone  
-- Possible concealment near shelf  
+Example: Masked person (visual) + Glass breaking (audio) within 7 seconds = REAL THREAT
 
-### Audio Detection:
-- Scream/distress  
-- Glass breaking  
-- Gunshot  
-- Aggressive shouting  
-- Silence after alarm  
+STEP 3: WHATSAPP ALERT
+-----------------------------------------
+When fusion triggers:
+- System captures a short video clip (10 seconds before and after event)
+- Sends clip via WhatsApp API to security team/user
+- Clip includes timestamp and type of anomalies detected
 
-### Fusion Logic:
-- Alert triggers **only when BOTH audio + visual events occur together**
+================================================================================
+FEATURES
+================================================================================
+✓ Real-time visual and audio monitoring
+✓ Low false alarm rate (fusion-based)
+✓ WhatsApp integration with video evidence
+✓ Works in retail stores, banks, schools, warehouses
+✓ Night mode for audio detection (screaming focus)
+✓ Silence detection after alarm (confirms incident)
 
-### Output:
-- Console alerts (default)  
-- Optional WhatsApp alerts via Twilio  
-- Saves last few seconds video clip in `clips/`
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+/visual-detection    - Camera & image processing code
+/audio-detection     - Microphone & sound analysis code
+/fusion-engine       - Combines visual + audio triggers
+/whatsapp-alerts     - WhatsApp API and clip sending
+/models              - Trained AI models (YOLO, audio)
+/datasets            - Training data
+/logs                - Event logs
+/output-clips        - Saved video clips of incidents
 
----
+================================================================================
+TECHNOLOGY STACK
+================================================================================
+- Python (main language)
+- OpenCV (video processing)
+- YOLO (object/gesture detection)
+- MFCC / Librosa (audio feature extraction)
+- Twilio API (WhatsApp messaging)
+- PyTorch / TensorFlow (AI models)
 
-## Notes
-- Some visual detections are heuristic (for demo simplicity)
-- Uses **YAMNet** for audio classification  
-- Falls back to loudness detection if model fails  
+================================================================================
+INSTALLATION (TO BE ADDED)
+================================================================================
+[Installation steps will be added here after development]
 
----
+Basic requirements:
+- Python 3.8+
+- Webcam / IP camera
+- USB Microphone
+- WhatsApp Business API access
 
-## 🚀 Quick Start
+================================================================================
+CURRENT STATUS
+================================================================================
+Project: IN DEVELOPMENT
 
-### 1. Create virtual environment
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
+Completed:
+- Project structure created
+- README documentation
 
-### 2. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Setup environment variables
-```bash
-copy .env.example .env
-```
-
-### 4. Run the app
-```bash
-python src/app.py
-```
-
-Press **q** to quit.
-
----
-
-## 📲 WhatsApp Alert Setup (Optional)
-
-1. Create a Twilio account  
-2. Enable WhatsApp sandbox  
-3. Add to `.env`:
-
-```
-SEND_WHATSAPP=1
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-WHATSAPP_FROM=whatsapp:+14155238886
-WHATSAPP_TO=whatsapp:+91XXXXXXXXXX
-```
-
----
-
-## 🎥 Send Clip via WhatsApp (Optional)
-
-### Start local server:
-```bash
-cd clips
-python -m http.server 8000
-```
-
-### Start ngrok:
-```bash
-ngrok http 8000
-```
-
-### Then set in `.env`:
-```
-PUBLIC_CLIP_BASE_URL=https://your-ngrok-url
-```
-
----
-
-## 🎯 Demo Tips
-
-- Use good lighting for webcam  
-- Play audio clips near mic to simulate events  
-- Define restricted zones clearly  
-
----
-
-## 💡 Project Goal
-
-Reduce false alarms in surveillance systems using **multimodal AI fusion (Vision + Audio)**.
-
----
-
-## 👨‍💻 Built for Hackathon
-A fast MVP demonstrating real-time threat detection with practical deployment options.
+In Progress:
+- Error alert sound selection (see progress.txt)
+- Visual detection module
+- Audio detection module
+- Fusion engine
+- WhatsApp integration
