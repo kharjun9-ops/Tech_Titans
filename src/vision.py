@@ -38,6 +38,8 @@ class VisionDetector:
         self.pose_model = YOLO(config.pose_model) if self.enable_pose else None
         self.enable_backpack = config.enable_backpack
         self.prev_gray = None
+        self.last_global_shift: Tuple[float, float] = (0.0, 0.0)
+        self.last_global_shift_ok: bool = False
         self.last_event_times: Dict[str, float] = {}
         self.frame_index = 0
         self.tracks: List[Track] = []
@@ -199,8 +201,51 @@ class VisionDetector:
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
         if self.prev_gray is None:
             self.prev_gray = gray
+            self.last_global_shift = (0.0, 0.0)
+            self.last_global_shift_ok = False
             return 0.0
-        diff = cv2.absdiff(gray, self.prev_gray)
+
+        prev_gray = self.prev_gray
+        aligned_prev = prev_gray
+        self.last_global_shift = (0.0, 0.0)
+        self.last_global_shift_ok = False
+
+        if bool(getattr(self.config, "enable_motion_stabilization", True)):
+            scale = float(getattr(self.config, "stabilization_scale", 0.25))
+            scale = max(0.1, min(1.0, scale))
+            try:
+                prev_small = cv2.resize(prev_gray, (0, 0), fx=scale, fy=scale)
+                curr_small = cv2.resize(gray, (0, 0), fx=scale, fy=scale)
+                shift_small, response = cv2.phaseCorrelate(
+                    prev_small.astype(np.float32), curr_small.astype(np.float32)
+                )
+                dx = float(shift_small[0]) / scale
+                dy = float(shift_small[1]) / scale
+
+                max_shift = float(getattr(self.config, "stabilization_max_shift_px", 60.0))
+                min_resp = float(getattr(self.config, "stabilization_min_response", 0.35))
+                if (
+                    response is not None
+                    and float(response) >= min_resp
+                    and abs(dx) <= max_shift
+                    and abs(dy) <= max_shift
+                ):
+                    self.last_global_shift = (dx, dy)
+                    self.last_global_shift_ok = True
+                    h, w = gray.shape[:2]
+                    M = np.float32([[1, 0, dx], [0, 1, dy]])
+                    aligned_prev = cv2.warpAffine(
+                        prev_gray,
+                        M,
+                        (w, h),
+                        flags=cv2.INTER_LINEAR,
+                        borderMode=cv2.BORDER_REPLICATE,
+                    )
+            except Exception:
+                self.last_global_shift = (0.0, 0.0)
+                self.last_global_shift_ok = False
+
+        diff = cv2.absdiff(gray, aligned_prev)
         self.prev_gray = gray
 
         if not person_boxes:
@@ -237,8 +282,12 @@ class VisionDetector:
             self._purge_tracks(now)
             return events
 
+        dx, dy = self.last_global_shift if self.last_global_shift_ok else (0.0, 0.0)
+        if dx != 0.0 or dy != 0.0:
+            for track in self.tracks:
+                track.centroid = (int(track.centroid[0] + dx), int(track.centroid[1] + dy))
+
         restricted_box = self.rel_box_to_abs(self.config.restricted_zone, frame.shape)
-        shelf_box = self.rel_box_to_abs(self.config.shelf_zone, frame.shape)
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -267,7 +316,7 @@ class VisionDetector:
             active_speeds.append(track.speed_px_s)
 
             in_restricted = self._point_in_box(centroid, restricted_box)
-            in_shelf = self._point_in_box(centroid, shelf_box)
+            in_shelf = False
 
             if in_restricted and track.speed_px_s <= self.config.loiter_max_speed_px_s:
                 track.in_zone_sec += track_dt
@@ -275,11 +324,8 @@ class VisionDetector:
                 track.in_zone_sec = 0.0
                 track.loiter_reported = False
 
-            if in_shelf and track.speed_px_s <= self.config.shoplift_max_speed_px_s:
-                track.in_shelf_sec += track_dt
-            else:
-                track.in_shelf_sec = 0.0
-                track.shoplift_reported = False
+            track.in_shelf_sec = 0.0
+            track.shoplift_reported = False
 
             box_w = max(0, box[2] - box[0])
             box_h = max(0, box[3] - box[1])
@@ -334,13 +380,7 @@ class VisionDetector:
                     )
                 )
 
-            if (
-                track.in_shelf_sec >= self.config.shoplift_sec
-                and motion_score > self.config.motion_threshold
-                and not track.shoplift_reported
-            ):
-                track.shoplift_reported = True
-                events.append(self._make_event("visual", "possible concealment", 0.6))
+
 
         close_people = set()
         for i in range(len(active_centroids)):

@@ -313,10 +313,16 @@ def main() -> None:
 
             frame = cv2.resize(frame, (config.frame_width, config.frame_height))
 
+            # Keep a clean copy for clip recording (no overlays).
+            raw_frame = frame.copy()
+
+            # Use a separate frame for detection + drawing overlays.
+            display_frame = frame.copy()
+
             frame_index += 1
             do_detect = (frame_index % max(1, config.detect_every_n)) == 0
             if do_detect:
-                events, detections, motion_score, person_count = vision.detect(frame)
+                events, detections, motion_score, person_count = vision.detect(display_frame)
                 last_detections = detections
                 last_motion_score = motion_score
                 last_person_count = person_count
@@ -365,10 +371,10 @@ def main() -> None:
 
             for det in detections:
                 color = (0, 0, 255) if det.get("is_weapon") else (0, 255, 0)
-                _draw_box(frame, det["bbox"], color)
+                _draw_box(display_frame, det["bbox"], color)
                 label = f"{det['label']} {det['conf']:.2f}"
                 cv2.putText(
-                    frame,
+                    display_frame,
                     label,
                     (det["bbox"][0], det["bbox"][1] - 6),
                     cv2.FONT_HERSHEY_SIMPLEX,
@@ -378,10 +384,8 @@ def main() -> None:
                     cv2.LINE_AA,
                 )
 
-            restricted_box = vision.rel_box_to_abs(config.restricted_zone, frame.shape)
-            shelf_box = vision.rel_box_to_abs(config.shelf_zone, frame.shape)
-            _draw_box(frame, restricted_box, (0, 0, 255))
-            _draw_box(frame, shelf_box, (255, 0, 0))
+            restricted_box = vision.rel_box_to_abs(config.restricted_zone, display_frame.shape)
+            _draw_box(display_frame, restricted_box, (0, 0, 255))
 
             overlay_lines = [
                 f"People: {person_count} | Motion: {motion_score:.2f}",
@@ -401,15 +405,15 @@ def main() -> None:
             else:
                 overlay_lines.append("Press r to set restricted zone")
             overlay_lines.append("Press q to quit")
-            _draw_text(frame, overlay_lines)
+            _draw_text(display_frame, overlay_lines)
 
             frame_ts_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
             if frame_ts_ms and frame_ts_ms > 0:
-                buffer.add(frame, timestamp=frame_ts_ms / 1000.0)
+                buffer.add(raw_frame, timestamp=frame_ts_ms / 1000.0)
             else:
-                buffer.add(frame)
+                buffer.add(raw_frame)
 
-            cv2.imshow(window_name, frame)
+            cv2.imshow(window_name, display_frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 break

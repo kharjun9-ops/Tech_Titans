@@ -1,0 +1,19 @@
+Progress Update (Hackathon Build)
+
+1) UI Cleanup (Removed extra box)
+- Removed the large extra overlay box that was taking too much space on the live view.
+- Kept only the restricted zone box (red) so the screen looks cleaner for the demo.
+- Final recorded clips are saved without overlays (clean evidence video).
+
+2) Accuracy Improvements
+- Improved weapon detection reliability using "weapon confirmation" (requires the weapon to persist across multiple frames before triggering an alert).
+- Reduced false motion/violence triggers caused by camera shake by adding motion stabilization and focusing motion scoring on person ROIs.
+- Added tunable thresholds in config (.env/.env.example) so we can quickly adjust sensitivity for the demo (weapon mins, stabilization, detection stride).
+
+3) Performance / Demo Smoothness
+- Reduced camera lag by lowering capture buffering and running heavy detection every N frames (instead of every single frame).
+- Fixed recorded clip playback speed issues by estimating FPS from camera timestamps.
+
+Status
+- Code + improvements are pushed to GitHub.
+- Clips folder was pruned to keep only the required demo clips.

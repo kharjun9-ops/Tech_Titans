@@ -71,6 +71,10 @@ class Config:
     shoplift_sec: float
     crowd_count: int
     motion_threshold: float
+    enable_motion_stabilization: bool
+    stabilization_scale: float
+    stabilization_min_response: float
+    stabilization_max_shift_px: float
     fight_motion_threshold: float
     fight_min_people: int
     fight_min_sec: float
@@ -140,6 +144,10 @@ class Config:
             shoplift_sec=_env_float("SHOPLIFT_SEC", 4.0),
             crowd_count=_env_int("CROWD_COUNT", 4),
             motion_threshold=_env_float("MOTION_THRESHOLD", 0.08),
+            enable_motion_stabilization=_env_bool("ENABLE_MOTION_STABILIZATION", True),
+            stabilization_scale=_env_float("STABILIZATION_SCALE", 0.25),
+            stabilization_min_response=_env_float("STABILIZATION_MIN_RESPONSE", 0.35),
+            stabilization_max_shift_px=_env_float("STABILIZATION_MAX_SHIFT_PX", 60.0),
             fight_motion_threshold=_env_float("FIGHT_MOTION_THRESHOLD", 0.14),
             fight_min_people=_env_int("FIGHT_MIN_PEOPLE", 2),
             fight_min_sec=_env_float("FIGHT_MIN_SEC", 0.6),
