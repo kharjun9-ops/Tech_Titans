@@ -1,0 +1,34 @@
+Progress Update 3 (Demo UI + Roadmap)
+
+1) Demo UI Improvements (OpenCV Live View)
+- Added a clean HUD panel (with background) to make the demo look product-like.
+- HUD now shows: FPS, People count, Motion score, Detect stride, and latest audio/vision labels.
+- Added a big on-screen banner: "ALERT TRIGGERED" for ~2 seconds when an alert fires.
+- Added hotkeys for smoother demo control:
+  - h = toggle HUD
+  - b = toggle boxes
+  - r = set restricted zone (click 2 corners)
+  - q = quit
+- Added clearer camera open/read error messages so the demo fails gracefully.
+
+2) Faster Startup / Stability
+- Ensured YOLO model paths resolve to the local .pt weights in the repo root to avoid surprise downloads during the demo.
+
+3) IoT / Multi-Sensor Fusion Roadmap (Beyond Audio+Video)
+- Documented how to extend the fusion engine with IoT sensors like:
+  - Door open/close sensor
+  - PIR motion sensor
+  - Light sensor
+  - Vibration/impact sensor
+- Added example real-world fusion rules:
+  - Door opened + no person detected → anomaly
+  - Door opened after-hours + aggressive audio → high priority
+  - Lights off + motion detected → suspicious
+
+Files touched in this update
+- src/app.py (UI HUD + banner + hotkeys)
+- src/config.py (local model path resolution)
+- README.md (IoT roadmap section + quickstart)
+- IOT_SENSORS_ROADMAP.md (detailed sensor roadmap)
+- progress2.txt (updated summary)
+- progress3.txt (this file)
