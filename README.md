@@ -1,160 +1,121 @@
-================================================================================
-PROJECT TITLE
-================================================================================
-Multimodal AI for Real-Time Threat Detection (Visual + Audio Fusion)
+# Multimodal AI for Real-Time Threat Detection
 
-================================================================================
-PROJECT OVERVIEW
-================================================================================
-This is an intelligent surveillance system that combines computer vision (camera)
-and audio analytics (microphone) to detect suspicious activities in real-time.
+An intelligent surveillance and incident-response demo that fuses **camera vision**, **microphone audio**, and optional **local alarm + WhatsApp evidence delivery** into one real-time safety pipeline.
 
-Unlike normal CCTV or sound alarms, this system uses MULTIMODAL FUSION - it only
-triggers an alert when BOTH visual AND audio anomalies happen within a short
-time window (e.g., 5-10 seconds). This drastically reduces false alarms.
+## Problem Statement
 
-================================================================================
-IOT / MULTI-SENSOR FUSION (ROADMAP)
-================================================================================
+Most security systems are built around a single signal. A camera may see a person, an audio detector may hear a sound, and a guard may receive too many separate alerts to trust any of them. That creates two failures:
 
-To extend beyond audio+video, the same fusion engine can ingest low-cost IoT sensors
-to make alerts more reliable and deployment-ready:
+1. False alarms from isolated events that are not actually dangerous.
+2. Slow response when a real threat is spread across multiple signals.
 
-Sensors to add:
-- Door sensor (open/close)
-- PIR motion sensor (presence)
-- Ambient light sensor (lights on/off)
-- Vibration sensor (forced entry / impact)
+This project solves that by using **multimodal fusion**. Instead of firing on one weak cue, the system waits for a visual event and an audio event to appear within a short time window before it escalates. The result is a smarter, more credible alert stream for schools, retail stores, warehouses, banks, and other monitored spaces.
 
-Example fusion rules:
-- Door opened + no person detected (camera) → anomaly
-- Door opened after-hours + aggressive audio → high priority
-- Lights turned off + motion detected → suspicious activity
+## Project Description
 
-Implementation idea:
-- A small “sensor events” input (MQTT/HTTP/WebSocket/serial) that produces events
-	in the same format as audio/visual events, then reuses the existing fusion window.
+This repository contains a real-time threat-detection prototype built in Python with OpenCV and YOLO-based vision analysis. The app continuously reads from a camera feed, tracks suspicious activity patterns, listens for audio anomalies, and stores short incident clips for evidence.
 
-================================================================================
-HOW IT WORKS (3 STEPS)
-================================================================================
+The system is designed to feel like a practical security product rather than a one-off model demo. It includes a clean on-screen HUD, configurable thresholds through environment variables, local model resolution so the repo weights are used directly, and a local alarm sound that can play on the demo machine when an alert triggers.
 
-STEP 1: INDEPENDENT DETECTION
------------------------------------------
-VISUAL DETECTION (Camera):
-- Shoplifting gestures (concealing items)
-- Loitering near restricted areas
-- Running inside stores / banks
-- Crowd stampede or fight detection
-- Masked person in sensitive zones
-- Weapon-like objects (gun, knife, etc.)
+## What It Detects
 
-AUDIO DETECTION (Microphone):
-- Screaming / distress sounds (especially at night)
-- Glass breaking (burglary detection)
-- Gunshot sounds
-- Aggressive shouting / altercation
-- Silence after alarm trigger (confirms event)
+Visual events:
 
-STEP 2: MULTIMODAL FUSION
------------------------------------------
-Both detection systems run simultaneously. An alert is triggered ONLY IF:
-- A visual anomaly is detected AND
-- An audio anomaly is detected within 5-10 seconds of each other
+- Restricted-zone intrusion
+- Loitering
+- Running or sudden movement
+- Crowd escalation or fight-like motion
+- Masked presence
+- Weapon-like object confirmation
+- Shoplifting-style activity patterns
 
-Example: Masked person (visual) + Glass breaking (audio) within 7 seconds = REAL THREAT
+Audio events:
 
-STEP 3: WHATSAPP ALERT
------------------------------------------
-When fusion triggers:
-- System captures a short video clip (10 seconds before and after event)
-- Sends clip via WhatsApp API to security team/user
-- Clip includes timestamp and type of anomalies detected
+- Screaming or distress sounds
+- Aggressive shouting
+- Gunshot-like impulses
+- Glass-breaking-like transients
+- Silence after an incident, used as a confirmatory signal
 
-================================================================================
-FEATURES
-================================================================================
-✓ Real-time visual and audio monitoring
-✓ Low false alarm rate (fusion-based)
-✓ WhatsApp integration with video evidence
-✓ Works in retail stores, banks, schools, warehouses
-✓ Night mode for audio detection (screaming focus)
-✓ Silence detection after alarm (confirms incident)
+## How the Fusion Works
 
-================================================================================
-PROJECT STRUCTURE
-================================================================================
-/visual-detection    - Camera & image processing code
-/audio-detection     - Microphone & sound analysis code
-/fusion-engine       - Combines visual + audio triggers
-/whatsapp-alerts     - WhatsApp API and clip sending
-/models              - Trained AI models (YOLO, audio)
-/datasets            - Training data
-/logs                - Event logs
-/output-clips        - Saved video clips of incidents
+1. The camera and microphone run independently.
+2. Each subsystem emits timestamped anomaly events with a score.
+3. The fusion layer waits for matching evidence inside a configurable window.
+4. When the signal combination is strong enough, the system triggers:
+	- a local alarm sound,
+	- a short clip capture,
+	- and optionally a WhatsApp alert with media evidence.
 
-================================================================================
-TECHNOLOGY STACK
-================================================================================
-- Python (main language)
-- OpenCV (video processing)
-- YOLO (object/gesture detection)
-- MFCC / Librosa (audio feature extraction)
-- Twilio API (WhatsApp messaging)
-- PyTorch / TensorFlow (AI models)
+This makes the alert behavior stricter than a normal CCTV trigger and much harder to spoof with a single noisy event.
 
-================================================================================
-INSTALLATION (TO BE ADDED)
-================================================================================
-[Installation steps will be added here after development]
+## Key Features
 
-Basic requirements:
-- Python 3.8+
-- Webcam / IP camera
-- USB Microphone
-- WhatsApp Business API access
+- Real-time video and audio monitoring
+- Fusion-based alerting to reduce false positives
+- Short incident clip capture with timestamped evidence
+- WhatsApp alert workflow for remote notification
+- Local Windows alarm sound with selectable style
+- Demo HUD with FPS, status, and anomaly labels
+- Restricted-zone calibration from the live view
+- Configurable thresholds through `.env`
+- Local YOLO model path resolution to avoid surprise downloads
 
-================================================================================
-CURRENT STATUS
-================================================================================
-Project: IN DEVELOPMENT
+## Demo Controls
 
-Completed:
-- Project structure created
-- README documentation
+- `h` toggles the HUD
+- `b` toggles detection boxes
+- `r` starts restricted-zone calibration, then click 2 corners
+- `q` quits the application
 
-In Progress:
-- Error alert sound selection (see progress.txt)
-- Visual detection module
-- Audio detection module
-- Fusion engine
-- WhatsApp integration
+## Setup
 
-================================================================================
-LOCAL ALERT SOUND
-================================================================================
+1. Install dependencies:
 
-When an alert triggers, the app can play a local alarm sound on this PC.
-
-- ENABLE_ALARM_SOUND=1  (turn on)
-- ALARM_STYLE=beep      (default) or siren
-
-================================================================================
-QUICKSTART (DEMO)
-================================================================================
-
-1) Install deps:
+	```bash
 	pip install -r requirements.txt
+	```
 
-2) (Optional) Create a .env from .env.example and set:
-	CAMERA_INDEX=0
-	SEND_WHATSAPP=0
+2. Create a `.env` file from `.env.example` and adjust the values for your machine.
 
-3) Run:
+3. Run the app:
+
+	```bash
 	python src/app.py
+	```
 
-Hotkeys:
-- h : toggle HUD
-- b : toggle boxes
-- r : set restricted zone (then click 2 corners)
-- q : quit
+## Important Environment Settings
+
+- `ENABLE_AUDIO=1` enables the microphone pipeline.
+- `REQUIRE_FUSION=1` keeps alerts strict and requires both audio and visual evidence.
+- `ENABLE_ALARM_SOUND=1` turns on the local alarm sound.
+- `ALARM_STYLE=beep` or `ALARM_STYLE=siren` chooses the alert tone.
+- `SEND_WHATSAPP=1` enables the WhatsApp media workflow.
+- `PUBLIC_CLIP_BASE_URL` should point to your public clip URL if you use ngrok.
+
+## Tech Stack
+
+- Python
+- OpenCV
+- YOLO-based vision detection
+- Real-time audio analysis
+- Twilio WhatsApp integration
+- FFmpeg for clip transcoding
+
+## Repository Layout
+
+- `src/app.py` main real-time application loop
+- `src/audio.py` audio anomaly detection
+- `src/vision.py` camera analysis and event logic
+- `src/config.py` environment-driven configuration
+- `src/alert.py` alert delivery helpers
+- `clips/` saved incident clips
+- `IOT_SENSORS_ROADMAP.md` future sensor-fusion expansion plan
+
+## Roadmap
+
+The same fusion pattern can be extended to IoT sensors such as door contacts, PIR motion, light sensors, and vibration sensors. That would let the system combine camera, audio, and physical-world signals into a single decision engine for higher-confidence security automation.
+
+## Current Status
+
+The core demo pipeline is implemented and ready for presentation: live detection, fusion logic, evidence capture, alert sound, and configuration are all in place.
