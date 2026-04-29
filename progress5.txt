@@ -1,0 +1,15 @@
+PROGRESS 5 - Final Handoff
+Date: 2026-04-29
+
+Final status:
+- Core detection, audio fusion, demo UI, and runtime defaults are in place.
+- Local model path resolution is enabled so the app uses the repo weights instead of surprise downloads.
+- Audio thresholds and environment examples are synced for the final demo run.
+
+Current repo state:
+- Final code changes are ready to be committed and pushed.
+- This is the last progress note for the project.
+
+Final handoff note:
+- Keep .env aligned with .env.example for the demo machine.
+- Start the app with the existing run instructions in README.md.

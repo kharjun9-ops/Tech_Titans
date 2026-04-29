@@ -1,0 +1,36 @@
+PROGRESS 4 - Next Commit Prep
+Date: 2026-04-29
+
+Summary of changes prepared:
+1. Audio sensitivity lowered for better detection of quieter events.
+2. Runtime and sample environment settings aligned.
+3. WhatsApp + ngrok run instructions finalized.
+
+Code/config updates included:
+- .env
+  - AUDIO_SCORE_THRESHOLD: 0.18 -> 0.14
+  - AUDIO_LOUD_RMS_THRESHOLD: 0.20 -> 0.18
+- .env.example
+  - AUDIO_SCORE_THRESHOLD: 0.18 -> 0.14
+  - AUDIO_LOUD_RMS_THRESHOLD: 0.20 -> 0.18
+- src/config.py
+  - Default AUDIO_SCORE_THRESHOLD: 0.18 -> 0.14
+  - Default AUDIO_LOUD_RMS_THRESHOLD: 0.20 -> 0.18
+
+Operational notes:
+- To send WhatsApp media clips, keep these running:
+  1) local clips server (python -m http.server 8080 inside clips/)
+  2) ngrok tunnel to port 8080
+  3) app (py src/app.py)
+- PUBLIC_CLIP_BASE_URL in .env must match current ngrok HTTPS URL.
+
+Planned commit message:
+"Lower audio detection thresholds and sync env defaults"
+
+Pre-push checklist:
+[ ] Verify app boots: py src/app.py
+[ ] Verify ngrok tunnel URL is active
+[ ] Confirm Twilio credentials and WhatsApp sandbox/number
+[ ] git add -A
+[ ] git commit -m "Lower audio detection thresholds and sync env defaults"
+[ ] git push origin main
